@@ -3,12 +3,13 @@ import { NextFunction, Request, Response } from "express";
 import { UserService } from "src/services/user.service";
 import * as jwt from "jsonwebtoken";
 import { JwtDataDto } from "src/dtos/auth/jwt.data.dto";
-import { jwtSecret } from "configuration/jwt.secret";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
     constructor(
-        private readonly userService: UserService
+        private readonly userService: UserService,
+        private readonly configService: ConfigService,
     ) {}
     async use(req: Request, res: Response, next: NextFunction) {
         if (!req.headers.authorization) {
@@ -25,10 +26,9 @@ export class AuthMiddleware implements NestMiddleware {
 
         if (("" + tokenString).length < 5) {
             throw new HttpException('Bad token found', HttpStatus.UNAUTHORIZED);
-            return;
         }
 
-        const jwtData: JwtDataDto = jwt.verify(tokenString, jwtSecret);
+        const jwtData: JwtDataDto = jwt.verify(tokenString, this.configService.get('JWT_SECRET'));
 
         if (!jwtData) {
             const currentTimestamp = new Date().getTime() / 1000;
@@ -37,24 +37,6 @@ export class AuthMiddleware implements NestMiddleware {
                 throw new HttpException('Token expired', HttpStatus.UNAUTHORIZED);
             }
         }
-
-        //req.token = jwtData;
-
-        /*
-        if (jwtData.ip !== req.ip.toString()) {
-            console.log("!!!ERROR!!!");
-            console.log("JWT: ", jwtData.ip);
-            console.log("REQUEST: ", req.ip.toString());
-            throw new HttpException("Bad ip", HttpStatus.UNAUTHORIZED);
-        }
-
-        if (jwtData.ua !== req.headers["user-agent"]) {
-            console.log("!!!ERROR!!!");
-            console.log("JWT: ", jwtData.ua);
-            console.log("REQUEST: ", req.headers["user-agent"]);
-            throw new HttpException("Bad header", HttpStatus.UNAUTHORIZED);
-        }
-        */
 
         if (!jwtData.role) {
             throw new HttpException('No role', HttpStatus.UNAUTHORIZED);
@@ -66,11 +48,6 @@ export class AuthMiddleware implements NestMiddleware {
                 throw new HttpException('Account not found', HttpStatus.UNAUTHORIZED);
             }
         } 
-        /*
-            else {
-                throw new HttpException('Unknown role', HttpStatus.UNAUTHORIZED);
-            }
-        */
 
         const currentTimestamp = new Date().getTime() / 1000;
         if (currentTimestamp >= jwtData.exp) {

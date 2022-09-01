@@ -7,14 +7,15 @@ import { SigninInfoDto } from "src/dtos/auth/signin.info.dto";
 import * as jwt from 'jsonwebtoken';
 import { JwtDataDto } from "src/dtos/auth/jwt.data.dto";
 import { Request } from "express";
-import { jwtSecret } from "configuration/jwt.secret";
 import { RegistrationDto } from "src/dtos/user/registration.dto";
 import { User } from "src/entities/user";
+import { ConfigService } from "@nestjs/config";
 
 @Controller("auth")
 export class AuthController {
     constructor(
-        public userService: UserService
+        public userService: UserService,
+        public configService: ConfigService,
     ) {}
     
     @Post('signin')
@@ -48,7 +49,7 @@ export class AuthController {
         jwtData.ip = req.ip.toString();
         jwtData.ua = req.headers["user-agent"];
 
-        let token: string = jwt.sign(jwtData.toPlainObject(), jwtSecret);
+        let token: string = jwt.sign(jwtData.toPlainObject(), this.configService.get('JWT_SECRET'));
 
         const responseObject = new SigninInfoDto(
             user.userId,

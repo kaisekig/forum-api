@@ -23,6 +23,4 @@ export class CommentController {
     async getCommentsByPostId(@Param("id") postId: number): Promise<Comment[] | null> {
         return await this.commentService.showCommentsByPostId(postId);
     }
-
-
 }

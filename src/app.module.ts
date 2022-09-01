@@ -1,6 +1,5 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { DatabaseConfiguration } from 'configuration/database.configuration';
 import { Comment } from 'src/entities/comment';
 import { Post } from 'src/entities/post';
 import { User } from 'src/entities/user';
@@ -15,27 +14,35 @@ import { UserService } from './services/user.service';
 import { AuthController } from './controllers/api/auth.controller';
 import { AuthMiddleware } from './middlewares/auth.middleware';
 import { HttpsRedirectMiddleware } from '@kittgen/nestjs-https-redirect';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: "mysql",
-      host: DatabaseConfiguration.hostname,
-      port: 3306,
-      username: DatabaseConfiguration.username,
-      password: DatabaseConfiguration.password,
-      database: DatabaseConfiguration.database,
-      entities: [
-        User,
-        Post,
-        Comment,
-      ]
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async(configService: ConfigService) => ({
+        type: 'mysql',
+        host: configService.get('DB_HOST'),
+        port: 3306,
+        username: configService.get('DB_USER'),
+        password: configService.get('DB_PASS'),
+        database: configService.get('DB_NAME'),
+        entities: [
+          User,
+          Post,
+          Comment,
+        ]
+      }),
+      inject: [ConfigService]
     }),
     TypeOrmModule.forFeature([
       User,
       Post,
       Comment,
-    ])
+    ]),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    })
   ],
   controllers: [
     AppController,
